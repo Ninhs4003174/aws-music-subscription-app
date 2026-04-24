@@ -1,6 +1,8 @@
 # AWS Music Subscription App
 
-This project is a cloud-based music subscription web application built using AWS services.
+A cloud-based music subscription web application built using AWS services.
+
+The application allows users to register, log in, search for music, subscribe to songs, view their subscriptions, remove subscriptions, and display artist images stored in AWS.
 
 ## AWS Services Used
 
@@ -14,21 +16,9 @@ This project is a cloud-based music subscription web application built using AWS
 ## Project Structure
 
 ```text
-frontend/   Frontend HTML, CSS, and JavaScript
-backend/    Backend team workspace
-
-## API Contract
-
-The frontend expects the backend to provide these endpoints:
-
-- `POST /login`
-- `POST /register`
-- `GET /music/search?title=&artist=&year=&album=`
-- `GET /subscriptions?email=`
-- `POST /subscriptions`
-- `DELETE /subscriptions`
-
-The backend base URL should be configured in:
-
-```text
-frontend/js/config.js
+aws-music-subscription-app/
+│
+├── frontend/    Frontend HTML, CSS, and JavaScript
+├── backend/     Backend team workspace
+├── README.md
+└── .gitignore
