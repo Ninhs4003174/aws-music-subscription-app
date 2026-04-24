@@ -14,10 +14,21 @@ This project is a cloud-based music subscription web application built using AWS
 ## Project Structure
 
 ```text
-frontend/          Static frontend pages
-backend-ec2-ecs/   Express backend for EC2 and ECS
-backend-lambda/    Lambda functions for serverless backend
-aws-setup/         Scripts for DynamoDB and S3 setup
-data/              Songs JSON dataset
-docs/              Architecture notes and demo checklist
-report/            Report notes, screenshots, and worklog
+frontend/   Frontend HTML, CSS, and JavaScript
+backend/    Backend team workspace
+
+## API Contract
+
+The frontend expects the backend to provide these endpoints:
+
+- `POST /login`
+- `POST /register`
+- `GET /music/search?title=&artist=&year=&album=`
+- `GET /subscriptions?email=`
+- `POST /subscriptions`
+- `DELETE /subscriptions`
+
+The backend base URL should be configured in:
+
+```text
+frontend/js/config.js
