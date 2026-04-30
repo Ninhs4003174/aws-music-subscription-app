@@ -1,58 +1,63 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-    <title>Login | AWS Music Subscription App</title>
-
-    <link rel="stylesheet" href="css/style.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Music Subscription - Login</title>
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-<main class="auth-page">
-    <section class="auth-card">
-        <div class="auth-header">
-            <div class="logo-circle">♪</div>
-            <h1>Welcome Back</h1>
-            <p>Log in to manage your music subscriptions</p>
+  <header class="topbar">
+    <a class="brand" href="login.html" aria-label="Music Subscription login">
+      <span class="brand-mark">M</span>
+      <span>Music Subscription</span>
+    </a>
+
+    <nav class="topnav" aria-label="Primary navigation">
+      <a href="main.html">Home</a>
+      <a href="register.html">Register</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="auth-layout">
+      <div class="hero-copy auth-copy">
+        <p class="eyebrow">Welcome back</p>
+        <h1>Login to manage your music subscriptions.</h1>
+        <p class="hero-text">Use your app account to search music, save subscriptions, and view your collection.</p>
+      </div>
+
+      <section class="panel auth-panel" aria-label="Login form">
+        <div class="section-heading">
+          <div>
+            <p class="panel-label">Login</p>
+            <h2>Sign in</h2>
+          </div>
         </div>
 
-        <form id="loginForm" class="auth-form">
-            <div class="form-group">
-                <label for="email">Email</label>
-                <input
-                        type="email"
-                        id="email"
-                        name="email"
-                        placeholder="Enter your email"
-                        required
-                />
-            </div>
+        <form class="query-form auth-form" id="login-form">
+          <label>
+            Email
+            <input type="text" name="email" autocomplete="email" placeholder="student@example.com" required>
+          </label>
 
-            <div class="form-group">
-                <label for="password">Password</label>
-                <input
-                        type="password"
-                        id="password"
-                        name="password"
-                        placeholder="Enter your password"
-                        required
-                />
-            </div>
+          <label>
+            Password
+            <input type="password" name="password" autocomplete="current-password" placeholder="Password" required>
+          </label>
 
-            <p id="loginMessage" class="message"></p>
-
-            <button type="submit" class="primary-btn">Log In</button>
+          <div class="form-actions">
+            <button class="button" type="submit">Login</button>
+          </div>
         </form>
 
-        <p class="auth-footer">
-            Don't have an account?
-            <a href="register.html">Register here</a>
-        </p>
+        <p class="message" id="login-message" hidden></p>
+      </section>
     </section>
-</main>
+  </main>
 
-<script src="js/config.js"></script>
-<script src="js/auth.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/login.js"></script>
 </body>
 </html>
