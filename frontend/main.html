@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Music Subscription - Home</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="main.html" aria-label="Music Subscription home">
+      <span class="brand-mark">M</span>
+      <span>Music Subscription</span>
+    </a>
+
+    <nav class="topnav" aria-label="Primary navigation">
+      <a href="#subscriptions">Subscriptions</a>
+      <a href="#query">Query</a>
+      <button class="button button-ghost" id="logout-button" type="button">Logout</button>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">Cloud music library</p>
+        <h1>Search music, subscribe, and manage your collection.</h1>
+        <p class="hero-text">Find songs by title, artist, album, or year, then keep the music you want in your subscription area.</p>
+      </div>
+
+      <aside class="user-panel" aria-label="Current user">
+        <p class="panel-label">User area</p>
+        <h2 id="welcome-name">Welcome</h2>
+        <p id="welcome-email" class="muted"></p>
+      </aside>
+    </section>
+
+    <section class="content-grid" aria-label="Music dashboard">
+      <section class="panel" id="subscriptions">
+        <div class="section-heading">
+          <div>
+            <p class="panel-label">Subscription area</p>
+            <h2>Your subscriptions</h2>
+          </div>
+          <button class="button button-secondary" id="refresh-subscriptions" type="button">Refresh</button>
+        </div>
+
+        <p class="empty-state" id="subscription-empty">No subscriptions yet.</p>
+        <div class="song-list" id="subscription-list" aria-live="polite"></div>
+      </section>
+
+      <section class="panel" id="query">
+        <div class="section-heading">
+          <div>
+            <p class="panel-label">Query area</p>
+            <h2>Find music</h2>
+          </div>
+        </div>
+
+        <form class="query-form" id="query-form">
+          <label>
+            Title
+            <input type="text" name="title" autocomplete="off" placeholder="American Pie">
+          </label>
+
+          <label>
+            Artist
+            <input type="text" name="artist" autocomplete="off" placeholder="Don McLean">
+          </label>
+
+          <label>
+            Album
+            <input type="text" name="album" autocomplete="off" placeholder="American Pie">
+          </label>
+
+          <label>
+            Year
+            <input type="text" name="year" inputmode="numeric" autocomplete="off" placeholder="1972">
+          </label>
+
+          <div class="form-actions">
+            <button class="button" type="submit">Query</button>
+            <button class="button button-secondary" id="clear-query" type="button">Clear</button>
+          </div>
+        </form>
+
+        <p class="message" id="result-message" hidden></p>
+        <div class="song-list" id="result-list" aria-live="polite"></div>
+      </section>
+    </section>
+  </main>
+
+  <script src="js/config.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/subscriptions.js"></script>
+  <script src="js/music.js"></script>
+  <script>
+    const user = getCurrentUser();
+
+    if (user) {
+      document.querySelector("#welcome-name").textContent = `Welcome, ${user.username}`;
+      document.querySelector("#welcome-email").textContent = user.email;
+      loadSubscriptions();
+    } else {
+      document.querySelector("#welcome-name").textContent = "Welcome, guest";
+      document.querySelector("#welcome-email").textContent = "";
+      document.querySelector("#subscription-empty").textContent = "Login first to view your subscriptions.";
+    }
+
+    document.querySelector("#refresh-subscriptions").addEventListener("click", loadSubscriptions);
+    document.querySelector("#logout-button").addEventListener("click", logout);
+  </script>
+</body>
+</html>
