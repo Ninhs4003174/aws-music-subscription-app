@@ -1,5 +1,4 @@
 from fastapi import APIRouter
-from app.models.schemas import SongQuery
 import boto3
 from boto3.dynamodb.conditions import Key
 from app.services.s3 import generate_presigned_url
@@ -10,25 +9,67 @@ dynamodb = boto3.resource('dynamodb')
 table = dynamodb.Table('music')
 
 
-@router.post("/songs")
-def query_songs(req: SongQuery):
+@router.get("/songs")
+def query_songs(
+    artist: str = None,
+    year: str = None,
+    album: str = None,
+    title: str = None,
+    limit: int = 50,
+    last_evaluated_key: str = None
+):
 
-    # Step 1: Use Query if artist provided
-    if req.artist:
+    # ✅ Requirement: at least one field must be provided
+    if not any([artist, year, album, title]):
+        return {"message": "At least one field must be provided"}
+
+    # Pagination setup
+    exclusive_start_key = None
+    if last_evaluated_key:
+        import json
+        exclusive_start_key = json.loads(last_evaluated_key)
+
+    query_params = {
+        "Limit": limit
+    }
+
+    if exclusive_start_key:
+        query_params["ExclusiveStartKey"] = exclusive_start_key
+
+    # ✅ Use indexes properly
+    if artist and year:
         response = table.query(
-            KeyConditionExpression=Key('artist').eq(req.artist)
+            IndexName='artist-year-index',
+            KeyConditionExpression=Key('artist').eq(artist) & Key('year').eq(year),
+            **query_params
         )
         items = response['Items']
-    else:
-        response = table.scan()
+
+    elif artist and album:
+        response = table.query(
+            IndexName='artist-album-index',
+            KeyConditionExpression=Key('artist').eq(artist) & Key('album').eq(album),
+            **query_params
+        )
         items = response['Items']
 
-    # Step 2: Apply AND filtering
+    elif artist:
+        response = table.query(
+            KeyConditionExpression=Key('artist').eq(artist),
+            **query_params
+        )
+        items = response['Items']
+
+    else:
+        response = table.scan(**query_params)
+        items = response['Items']
+
+    # ✅ FULL AND filtering
     def match(song):
         return (
-            (not req.year or song['year'] == req.year) and
-            (not req.album or song['album'] == req.album) and
-            (not req.title or song['title'] == req.title)
+            (not title or song['title'] == title) and
+            (not year or song['year'] == year) and
+            (not album or song['album'] == album)
         )
 
     filtered = list(filter(match, items))
@@ -36,9 +77,17 @@ def query_songs(req: SongQuery):
     if not filtered:
         return {"message": "No result is retrieved. Please query again"}
 
-    # Step 3: Replace image_url with pre-signed URL
+    # ✅ Pre-signed URLs
     for song in filtered:
         if "image_url" in song:
             song["image_url"] = generate_presigned_url(song["image_url"])
 
-    return filtered
+    result = {
+        "items": filtered
+    }
+
+    if "LastEvaluatedKey" in response:
+        import json
+        result["last_evaluated_key"] = json.dumps(response["LastEvaluatedKey"])
+
+    return result

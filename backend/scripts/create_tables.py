@@ -1,4 +1,5 @@
 import boto3
+from botocore.exceptions import ClientError
 
 dynamodb = boto3.client('dynamodb')
 
@@ -37,6 +38,16 @@ def create_music_table():
                 'Projection': {'ProjectionType': 'ALL'}
             }
         ],
+        LocalSecondaryIndexes=[
+            {
+                'IndexName': 'artist-album-index',
+                'KeySchema': [
+                    {'AttributeName': 'artist', 'KeyType': 'HASH'},
+                    {'AttributeName': 'album', 'KeyType': 'RANGE'}
+                ],
+                'Projection': {'ProjectionType': 'ALL'}
+            }
+        ],
         BillingMode='PAY_PER_REQUEST'
     )
 
@@ -54,6 +65,14 @@ def create_subscription_table():
         BillingMode='PAY_PER_REQUEST'
     )
 
-create_login_table()
-create_music_table()
-create_subscription_table()
+def safe_create(func):
+    try:
+        func()
+    except ClientError as e:
+        if e.response['Error']['Code'] != 'ResourceInUseException':
+            raise
+
+
+safe_create(create_login_table)
+safe_create(create_music_table)
+safe_create(create_subscription_table)

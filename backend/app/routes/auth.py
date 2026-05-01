@@ -27,4 +27,7 @@ def login(req: LoginRequest):
     if 'Item' not in res or res['Item']['password'] != req.password:
         raise HTTPException(400, "email or password is invalid")
 
-    return {"username": res['Item']['username']}
+    return {
+    "email": req.email,
+    "username": res['Item']['username']
+    }

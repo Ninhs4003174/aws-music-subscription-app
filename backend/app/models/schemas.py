@@ -19,3 +19,7 @@ class SongQuery(BaseModel):
 class SubscriptionRequest(BaseModel):
     user_email: str
     song_id: str
+    title: str
+    artist: str
+    album: str
+    image_url: str

@@ -3,6 +3,8 @@ import boto3
 import requests
 from urllib.parse import urlparse
 
+downloaded_cache = {}
+
 s3 = boto3.client('s3')
 dynamodb = boto3.resource('dynamodb')
 
@@ -15,6 +17,9 @@ def get_filename_from_url(url):
     return urlparse(url).path.split("/")[-1]
 
 def upload_image_to_s3(image_url):
+    if image_url in downloaded_cache:
+        return downloaded_cache[image_url]
+
     filename = get_filename_from_url(image_url)
 
     response = requests.get(image_url)
@@ -29,6 +34,7 @@ def upload_image_to_s3(image_url):
         ContentType="image/jpeg"
     )
 
+    downloaded_cache[image_url] = filename
     return filename
 
 def update_dynamodb(artist, title, s3_key):
