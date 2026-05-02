@@ -1,17 +1,27 @@
 function getCurrentUser() {
   const email = localStorage.getItem("musicUserEmail");
-  const username = localStorage.getItem("musicUsername");
+  const userName = localStorage.getItem("musicUserName");
 
-  if (!email) return null;
+  if (!email) {
+    return null;
+  }
 
   return {
-    email,
-    username: username || email
+    email: email,
+    user_name: userName || email
   };
+}
+
+function saveCurrentUser(user) {
+  const email = user.email;
+  const userName = user.user_name || user.username || user.name || email;
+
+  localStorage.setItem("musicUserEmail", email);
+  localStorage.setItem("musicUserName", userName);
 }
 
 function logout() {
   localStorage.removeItem("musicUserEmail");
-  localStorage.removeItem("musicUsername");
+  localStorage.removeItem("musicUserName");
   window.location.href = "login.html";
 }

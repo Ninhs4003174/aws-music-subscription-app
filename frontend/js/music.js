@@ -1,80 +1,180 @@
-const queryForm = document.querySelector("#query-form");
-const resultList = document.querySelector("#result-list");
-const resultMessage = document.querySelector("#result-message");
-const clearButton = document.querySelector("#clear-query");
+const subscriptionList = document.querySelector("#subscription-list");
+const subscriptionEmpty = document.querySelector("#subscription-empty");
 
-function showQueryMessage(message, type = "info") {
-  if (!resultMessage) return;
-
-  resultMessage.textContent = message;
-  resultMessage.className = `message ${type}`;
-  resultMessage.hidden = !message;
+function songIdFor(song) {
+  return song.song_id || `${song.artist || ""}#${song.title || ""}`;
 }
 
-function formToSongQuery(form) {
-  const formData = new FormData(form);
-  const query = {};
+function artistImageFor(song) {
+  return song.s3_image_url || song.image_url || song.img_url || "";
+}
 
-  for (const [key, value] of formData.entries()) {
-    const trimmed = value.trim();
-    if (trimmed) query[key] = trimmed;
+function normalizeSong(song) {
+  const songId = song.song_id || "";
+  const parts = songId.split("#");
+
+  return {
+    ...song,
+    song_id: song.song_id || songIdFor(song),
+    artist: song.artist || parts[0] || "Unknown artist",
+    title: song.title || parts[1] || "Untitled song",
+    year: song.year || "",
+    album: song.album || "",
+    image_url: song.image_url || song.img_url || "",
+    s3_image_url: song.s3_image_url || ""
+  };
+}
+
+function extractSubscriptionArray(data) {
+  if (Array.isArray(data)) {
+    return data;
   }
 
-  return query;
+  if (Array.isArray(data.subscriptions)) {
+    return data.subscriptions;
+  }
+
+  if (Array.isArray(data.items)) {
+    return data.items;
+  }
+
+  return [];
 }
 
-function queryStringFrom(query) {
-  const params = new URLSearchParams();
+function renderSongCard(song, actionLabel, actionHandler) {
+  const displaySong = normalizeSong(song);
 
-  Object.entries(query).forEach(([key, value]) => {
-    if (value) params.set(key, value);
-  });
+  const article = document.createElement("article");
+  article.className = "song-card";
 
-  return params.toString();
+  const imageUrl = artistImageFor(displaySong);
+
+  if (imageUrl) {
+    const image = document.createElement("img");
+    image.className = "artist-image";
+    image.alt = `${displaySong.artist} image`;
+    image.loading = "lazy";
+    image.src = imageUrl;
+    article.appendChild(image);
+  }
+
+  const details = document.createElement("div");
+  details.className = "song-details";
+
+  const title = document.createElement("h3");
+  title.textContent = displaySong.title;
+
+  const artist = document.createElement("p");
+  artist.className = "song-artist";
+  artist.textContent = displaySong.artist;
+
+  const meta = document.createElement("p");
+  meta.className = "song-meta";
+  meta.textContent = [displaySong.album, displaySong.year].filter(Boolean).join(" - ");
+
+  const action = document.createElement("button");
+  action.type = "button";
+  action.className = actionLabel === "Remove" ? "button button-danger" : "button button-small";
+  action.textContent = actionLabel;
+  action.addEventListener("click", () => actionHandler(displaySong, action));
+
+  details.append(title, artist, meta, action);
+  article.appendChild(details);
+
+  return article;
 }
 
-function renderResults(songs) {
-  resultList.innerHTML = "";
+async function loadSubscriptions() {
+  const user = getCurrentUser();
 
-  songs.forEach((song) => {
-    resultList.appendChild(renderSongCard(song, "Subscribe", subscribeToSong));
-  });
-}
+  if (!subscriptionList || !subscriptionEmpty) {
+    return;
+  }
 
-if (queryForm) {
-  queryForm.addEventListener("submit", async (event) => {
-    event.preventDefault();
+  subscriptionList.innerHTML = "";
 
-    const query = formToSongQuery(queryForm);
+  if (!user) {
+    subscriptionEmpty.hidden = false;
+    subscriptionEmpty.textContent = "Login first to view your subscriptions.";
+    return;
+  }
 
-    resultList.innerHTML = "";
+  subscriptionEmpty.hidden = true;
+  subscriptionEmpty.textContent = "No subscriptions yet.";
 
-    if (!Object.keys(query).length) {
-      showQueryMessage("Enter at least one search field.", "error");
+  try {
+    const data = await apiRequest(`/subscriptions/${encodeURIComponent(user.email)}`);
+    const subscriptions = extractSubscriptionArray(data);
+
+    if (!subscriptions.length) {
+      subscriptionEmpty.hidden = false;
+      subscriptionEmpty.textContent = "No subscriptions yet.";
       return;
     }
 
-    showQueryMessage("Searching...", "info");
-
-    try {
-      const data = await apiRequest(`/music/query?${queryStringFrom(query)}`);
-
-      if (Array.isArray(data) && data.length) {
-        renderResults(data);
-        showQueryMessage(`${data.length} result${data.length === 1 ? "" : "s"} found.`, "success");
-      } else {
-        showQueryMessage("No result is retrieved. Please query again", "info");
-      }
-    } catch (error) {
-      showQueryMessage(`Unable to query music: ${error.message}`, "error");
-    }
-  });
+    subscriptions.forEach((song) => {
+      const card = renderSongCard(song, "Remove", unsubscribeFromSong);
+      subscriptionList.appendChild(card);
+    });
+  } catch (error) {
+    subscriptionEmpty.hidden = false;
+    subscriptionEmpty.textContent = `Unable to load subscriptions: ${error.message}`;
+  }
 }
 
-if (clearButton) {
-  clearButton.addEventListener("click", () => {
-    queryForm.reset();
-    resultList.innerHTML = "";
-    showQueryMessage("", "info");
-  });
+async function subscribeToSong(song, button) {
+  const user = getCurrentUser();
+
+  if (!user) {
+    showQueryMessage("Please login before subscribing to music.", "error");
+    return;
+  }
+
+  button.disabled = true;
+  button.textContent = "Adding...";
+
+  try {
+    await apiRequest("/subscribe", {
+      method: "POST",
+      body: JSON.stringify({
+        user_email: user.email,
+        song_id: songIdFor(song)
+      })
+    });
+
+    button.textContent = "Subscribed";
+    await loadSubscriptions();
+  } catch (error) {
+    button.disabled = false;
+    button.textContent = "Subscribe";
+    showQueryMessage(error.message, "error");
+  }
+}
+
+async function unsubscribeFromSong(song, button) {
+  const user = getCurrentUser();
+
+  if (!user) {
+    return;
+  }
+
+  button.disabled = true;
+  button.textContent = "Removing...";
+
+  try {
+    await apiRequest("/subscribe", {
+      method: "DELETE",
+      body: JSON.stringify({
+        user_email: user.email,
+        song_id: songIdFor(song)
+      })
+    });
+
+    await loadSubscriptions();
+  } catch (error) {
+    button.disabled = false;
+    button.textContent = "Remove";
+    subscriptionEmpty.hidden = false;
+    subscriptionEmpty.textContent = error.message;
+  }
 }

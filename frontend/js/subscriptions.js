@@ -2,7 +2,7 @@ const subscriptionList = document.querySelector("#subscription-list");
 const subscriptionEmpty = document.querySelector("#subscription-empty");
 
 function songIdFor(song) {
-  return song.song_id || `${song.artist}#${song.title}`;
+  return song.song_id || `${song.title || ""}#${song.artist || ""}#${song.album || ""}#${song.year || ""}`;
 }
 
 function artistImageFor(song) {
@@ -10,30 +10,49 @@ function artistImageFor(song) {
 }
 
 function normalizeSong(song) {
-  const [fallbackArtist = "", fallbackTitle = ""] = String(song.song_id || "").split("#");
-
   return {
     ...song,
-    title: song.title || fallbackTitle || "Untitled song",
-    artist: song.artist || fallbackArtist || "Unknown artist",
+    song_id: song.song_id || songIdFor(song),
+    title: song.title || "Untitled song",
+    artist: song.artist || "Unknown artist",
     year: song.year || "",
-    album: song.album || ""
+    album: song.album || "",
+    image_url: song.image_url || song.img_url || "",
+    s3_image_url: song.s3_image_url || ""
   };
+}
+
+function extractSubscriptionArray(data) {
+  if (Array.isArray(data)) {
+    return data;
+  }
+
+  if (Array.isArray(data.subscriptions)) {
+    return data.subscriptions;
+  }
+
+  if (Array.isArray(data.items)) {
+    return data.items;
+  }
+
+  return [];
 }
 
 function renderSongCard(song, actionLabel, actionHandler) {
   const displaySong = normalizeSong(song);
+
   const article = document.createElement("article");
   article.className = "song-card";
 
-  const image = document.createElement("img");
-  image.className = "artist-image";
-  image.alt = `${displaySong.artist} image`;
-  image.loading = "lazy";
-
   const imageUrl = artistImageFor(displaySong);
+
   if (imageUrl) {
+    const image = document.createElement("img");
+    image.className = "artist-image";
+    image.alt = `${displaySong.artist} image`;
+    image.loading = "lazy";
     image.src = imageUrl;
+    article.appendChild(image);
   }
 
   const details = document.createElement("div");
@@ -57,14 +76,17 @@ function renderSongCard(song, actionLabel, actionHandler) {
   action.addEventListener("click", () => actionHandler(displaySong, action));
 
   details.append(title, artist, meta, action);
-  article.append(image, details);
+  article.appendChild(details);
 
   return article;
 }
 
 async function loadSubscriptions() {
   const user = getCurrentUser();
-  if (!subscriptionList) return;
+
+  if (!subscriptionList || !subscriptionEmpty) {
+    return;
+  }
 
   subscriptionList.innerHTML = "";
 
@@ -78,7 +100,8 @@ async function loadSubscriptions() {
   subscriptionEmpty.textContent = "No subscriptions yet.";
 
   try {
-    const subscriptions = await apiRequest(`/subscriptions?email=${encodeURIComponent(user.email)}`);
+    const data = await apiRequest(`/subscriptions?email=${encodeURIComponent(user.email)}`);
+    const subscriptions = extractSubscriptionArray(data);
 
     if (!subscriptions.length) {
       subscriptionEmpty.hidden = false;
@@ -98,6 +121,7 @@ async function loadSubscriptions() {
 
 async function subscribeToSong(song, button) {
   const user = getCurrentUser();
+
   if (!user) {
     showQueryMessage("Please login before subscribing to music.", "error");
     return;
@@ -132,14 +156,25 @@ async function subscribeToSong(song, button) {
 
 async function unsubscribeFromSong(song, button) {
   const user = getCurrentUser();
-  if (!user) return;
+
+  if (!user) {
+    return;
+  }
 
   button.disabled = true;
   button.textContent = "Removing...";
 
   try {
-    await apiRequest(`/subscriptions/${encodeURIComponent(songIdFor(song))}?email=${encodeURIComponent(user.email)}`, {
-      method: "DELETE"
+    await apiRequest("/subscriptions", {
+      method: "DELETE",
+      body: JSON.stringify({
+        email: user.email,
+        song_id: songIdFor(song),
+        title: song.title || "",
+        artist: song.artist || "",
+        year: song.year || "",
+        album: song.album || ""
+      })
     });
 
     await loadSubscriptions();

@@ -1,5 +1,8 @@
-// Replace this with API Gateway / EC2 / ECS deployed backend URL before AWS demo.
-const API_BASE_URL = "http://localhost:3000";
+// Backend API URL.
+// Local FastAPI backend usually runs on port 8000.
+// Frontend may run on port 3000 through npx serve.
+
+const API_BASE_URL = "http://localhost:8000";
 
 async function apiRequest(path, options = {}) {
   let response;

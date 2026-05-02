@@ -15,8 +15,11 @@ if (registerForm) {
 
     const formData = new FormData(registerForm);
     const email = String(formData.get("email") || "").trim();
-    const username = String(formData.get("username") || "").trim();
+    const username =
+      String(formData.get("username") || "").trim() ||
+      String(formData.get("user_name") || "").trim();
     const password = String(formData.get("password") || "").trim();
+    const submitButton = registerForm.querySelector("button[type='submit']");
 
     if (!email || !username || !password) {
       showRegisterMessage("Enter email, username, and password.", "error");
@@ -24,19 +27,32 @@ if (registerForm) {
     }
 
     showRegisterMessage("Creating account...", "info");
+    submitButton.disabled = true;
 
     try {
-      await apiRequest("/register", {
+      const data = await apiRequest("/register", {
         method: "POST",
-        body: JSON.stringify({ email, username, password })
+        body: JSON.stringify({
+          email: email,
+          username: username,
+          password: password
+        })
       });
 
-      window.location.href = "login.html";
+      if (data.success === false) {
+        showRegisterMessage(data.message || "The email already exists", "error");
+        return;
+      }
+
+      showRegisterMessage("Registration successful. Redirecting to login...", "success");
+
+      setTimeout(() => {
+        window.location.href = "login.html";
+      }, 700);
     } catch (error) {
-      const message = error.message === "The email already exists"
-        ? "The email already exists"
-        : `Unable to register: ${error.message}`;
-      showRegisterMessage(message, "error");
+      showRegisterMessage(error.message || "Unable to register.", "error");
+    } finally {
+      submitButton.disabled = false;
     }
   });
 }
