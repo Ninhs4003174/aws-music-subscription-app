@@ -47,8 +47,7 @@ if (loginForm) {
       const data = await backendLogin(email, password);
       completeLogin(email, data.username);
     } catch (error) {
-      // TEMPORARY LOCAL TESTING ONLY - remove when backend login is connected
-      completeLogin(email, usernameFromEmail(email));
+      showLoginMessage(`Login failed: ${error.message}`, "error");
     }
   });
 }
