@@ -1,5 +1,5 @@
-// Replace this with API Gateway / EC2 / ECS deployed backend URL before AWS demo.
-const API_BASE_URL = "http://localhost:3000";
+// Use the EC2 backend URL (no path suffix) so frontend requests go to the API.
+const API_BASE_URL = "http://ec2-3-91-56-14.compute-1.amazonaws.com:8000";
 
 async function apiRequest(path, options = {}) {
   let response;
