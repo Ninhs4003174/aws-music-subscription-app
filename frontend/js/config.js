@@ -1,5 +1,5 @@
-// Use the EC2 backend URL (no path suffix) so frontend requests go to the API.
-const API_BASE_URL = "http://ec2-3-91-56-14.compute-1.amazonaws.com:8000";
+// Use same-origin paths so nginx can proxy API requests to the backend container.
+const API_BASE_URL = "";
 
 async function apiRequest(path, options = {}) {
   let response;
