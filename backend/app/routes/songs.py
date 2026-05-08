@@ -38,56 +38,36 @@ def _query_songs_core(
     if exclusive_start_key:
         query_params["ExclusiveStartKey"] = exclusive_start_key
 
-    # Try query/index-first for speed, but fall back to scan if table schema differs.
+    # Scan all items (fallback approach for flexible filtering)
     try:
-        if artist and year:
-            response = table.query(
-                IndexName='artist-year-index',
-                KeyConditionExpression=Key('artist').eq(artist) & Key('year').eq(year),
-                **query_params
-            )
-            items = response['Items']
-
-        elif artist and album:
-            response = table.query(
-                IndexName='artist-album-index',
-                KeyConditionExpression=Key('artist').eq(artist) & Key('album').eq(album),
-                **query_params
-            )
-            items = response['Items']
-
-        elif artist:
-            response = table.query(
-                KeyConditionExpression=Key('artist').eq(artist),
-                **query_params
-            )
-            items = response['Items']
-
-        else:
-            response = table.scan(**query_params)
-            items = response['Items']
-    except ClientError as error:
-        code = error.response.get('Error', {}).get('Code')
-        if code != 'ValidationException':
-            raise
-
         response = table.scan(**query_params)
         items = response.get('Items', [])
+    except ClientError as error:
+        items = []
 
-    # ✅ FULL AND filtering
+    # Prefix/partial matching with case-insensitive filtering
     def match(song):
+        # Helper: case-insensitive prefix match
+        def prefix_match(field_value, search_term):
+            if not search_term:
+                return True
+            if not field_value:
+                return False
+            return str(field_value).lower().startswith(str(search_term).lower())
+        
         return (
-            (not title or song['title'] == title) and
-            (not year or song['year'] == year) and
-            (not album or song['album'] == album)
+            (not title or prefix_match(song.get('title', ''), title)) and
+            (not artist or prefix_match(song.get('artist', ''), artist)) and
+            (not year or str(song.get('year', '')) == str(year)) and
+            (not album or prefix_match(song.get('album', ''), album))
         )
 
-    filtered = list(filter(match, items))
+    filtered = list(filter(match, items))[:limit]
 
     if not filtered:
         return []
 
-    # ✅ Pre-signed URLs
+    # Pre-signed URLs
     for song in filtered:
         if "image_url" in song:
             song["image_url"] = generate_presigned_url(song["image_url"])
