@@ -38,11 +38,23 @@ def _query_songs_core(
     if exclusive_start_key:
         query_params["ExclusiveStartKey"] = exclusive_start_key
 
-    # Scan all items (fallback approach for flexible filtering)
+    items = []
+
     try:
-        response = table.scan(**query_params)
-        items = response.get('Items', [])
-    except ClientError as error:
+        if artist and year:
+            query_params["IndexName"] = "artist-year-lsi"
+            query_params["KeyConditionExpression"] = Key('artist').eq(artist) & Key('year').eq(year)
+            response = table.query(**query_params)
+            items = response.get('Items', [])
+        elif artist:
+            query_params["KeyConditionExpression"] = Key('artist').eq(artist)
+            response = table.query(**query_params)
+            items = response.get('Items', [])
+        else:
+            # Scan all items (fallback approach for flexible filtering)
+            response = table.scan(**query_params)
+            items = response.get('Items', [])
+    except ClientError:
         items = []
 
     # Prefix/partial matching with case-insensitive filtering
@@ -87,6 +99,10 @@ def query_songs(
     items = _query_songs_core(artist, year, album, title, limit, last_evaluated_key)
     return {"items": items}
 
+
+@router.options("/music/query")
+def options_music_query():
+    return {}
 
 @router.get("/music/query")
 def query_music_for_frontend(
