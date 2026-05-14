@@ -25,8 +25,7 @@ def create_music_table():
         AttributeDefinitions=[
             {'AttributeName': 'artist', 'AttributeType': 'S'},
             {'AttributeName': 'title', 'AttributeType': 'S'},
-            {'AttributeName': 'year', 'AttributeType': 'S'},
-            {'AttributeName': 'album', 'AttributeType': 'S'}
+            {'AttributeName': 'year', 'AttributeType': 'S'}
         ],
         GlobalSecondaryIndexes=[
             {
@@ -40,10 +39,10 @@ def create_music_table():
         ],
         LocalSecondaryIndexes=[
             {
-                'IndexName': 'artist-album-index',
+                'IndexName': 'artist-year-lsi',
                 'KeySchema': [
                     {'AttributeName': 'artist', 'KeyType': 'HASH'},
-                    {'AttributeName': 'album', 'KeyType': 'RANGE'}
+                    {'AttributeName': 'year', 'KeyType': 'RANGE'}
                 ],
                 'Projection': {'ProjectionType': 'ALL'}
             }
